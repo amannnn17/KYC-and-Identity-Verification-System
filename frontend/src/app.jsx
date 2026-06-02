@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import './index.css';
 import Layout from './components/Layout';
 import LandingPage from './pages/LandingPage';
+import VerificationFlow from './pages/VerificationFlow';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -12,7 +13,8 @@ root.render(
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<LandingPage />} />
-          {/* We will add /upload and /admin routes in later phases */}
+          <Route path="verify" element={<VerificationFlow />} />
+          {/* We will add /admin route in later phases */}
         </Route>
       </Routes>
     </Router>

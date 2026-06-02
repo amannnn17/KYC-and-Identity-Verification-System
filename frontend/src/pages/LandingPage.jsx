@@ -15,9 +15,9 @@ const LandingPage = () => {
         </p>
         
         <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '64px' }}>
-          <button className="btn btn-primary" style={{ padding: '16px 32px', fontSize: '1.1rem' }}>
+          <Link to="/verify" className="btn btn-primary" style={{ padding: '16px 32px', fontSize: '1.1rem' }}>
             Start Verification
-          </button>
+          </Link>
           <button className="btn btn-outline" style={{ padding: '16px 32px', fontSize: '1.1rem' }}>
             Learn More
           </button>
