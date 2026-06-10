@@ -10,8 +10,9 @@ const Layout = () => {
             KYC<span style={{ color: 'var(--text-primary)' }}>Verify</span>
           </div>
           <nav style={{ display: 'flex', gap: '24px' }}>
-            <Link to="/" style={{ fontWeight: 500 }}>Home</Link>
-            <Link to="#" style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>Admin Dashboard</Link>
+            <Link to="/" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }}>Home</Link>
+            <Link to="/verify" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }}>Verify</Link>
+            <Link to="/admin" style={{ color: 'var(--text-primary)', textDecoration: 'none', fontWeight: 500 }}>Admin Dashboard</Link>
           </nav>
         </div>
       </header>

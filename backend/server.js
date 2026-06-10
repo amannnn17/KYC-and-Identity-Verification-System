@@ -195,6 +195,49 @@ Return ONLY a raw JSON object. No markdown, no backticks, no extra text:
     }
 });
 
+// Admin Routes (Phase 4)
+app.get('/api/admin/submissions', async (req, res) => {
+    try {
+        const submissions = await VerificationRequest.find().sort({ createdAt: -1 });
+        res.status(200).json({ success: true, submissions });
+    } catch (error) {
+        console.error("Fetch Submissions Error:", error);
+        res.status(500).json({ error: 'Failed to fetch submissions' });
+    }
+});
+
+app.get('/api/admin/submissions/:id', async (req, res) => {
+    try {
+        const submission = await VerificationRequest.findById(req.params.id);
+        if (!submission) return res.status(404).json({ error: 'Submission not found' });
+        res.status(200).json({ success: true, submission });
+    } catch (error) {
+        console.error("Fetch Submission Error:", error);
+        res.status(500).json({ error: 'Failed to fetch submission' });
+    }
+});
+
+app.put('/api/admin/submissions/:id/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+        if (!['Approved', 'Rejected', 'Flagged', 'Pending'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+        
+        const submission = await VerificationRequest.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true }
+        );
+        
+        if (!submission) return res.status(404).json({ error: 'Submission not found' });
+        res.status(200).json({ success: true, submission });
+    } catch (error) {
+        console.error("Update Status Error:", error);
+        res.status(500).json({ error: 'Failed to update status' });
+    }
+});
+
 // Start Server
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

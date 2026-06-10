@@ -5,6 +5,8 @@ import './index.css';
 import Layout from './components/Layout';
 import LandingPage from './pages/LandingPage';
 import VerificationFlow from './pages/VerificationFlow';
+import AdminDashboard from './pages/AdminDashboard';
+import SubmissionDetails from './pages/SubmissionDetails';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -14,7 +16,8 @@ root.render(
         <Route path="/" element={<Layout />}>
           <Route index element={<LandingPage />} />
           <Route path="verify" element={<VerificationFlow />} />
-          {/* We will add /admin route in later phases */}
+          <Route path="admin" element={<AdminDashboard />} />
+          <Route path="admin/submissions/:id" element={<SubmissionDetails />} />
         </Route>
       </Routes>
     </Router>
