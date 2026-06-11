@@ -58,63 +58,31 @@ app.post('/api/upload/selfie', upload.single('selfie'), (req, res) => {
 // AI Verification Route (Phase 3)
 app.post('/api/verify', async (req, res) => {
     try {
-        const { documentUrl, selfieUrl } = req.body;
+        const { documentUrl, selfieUrl, mlMatchScore, mlDistance } = req.body;
         
         if (!documentUrl || !selfieUrl) {
             return res.status(400).json({ error: 'Missing document or selfie url' });
         }
 
         const docPath = path.join(__dirname, documentUrl);
-        const selfiePath = path.join(__dirname, selfieUrl);
         
-        if (!fs.existsSync(docPath) || !fs.existsSync(selfiePath)) {
+        if (!fs.existsSync(docPath)) {
             return res.status(400).json({ error: 'Uploaded files not found on server' });
         }
         
         const docBase64 = fs.readFileSync(docPath).toString('base64');
-        const selfieBase64 = fs.readFileSync(selfiePath).toString('base64');
         
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const prompt = `You are a STRICT forensic facial verification expert conducting KYC identity verification. Your job is to PREVENT identity fraud. You must be highly skeptical.
+        const prompt = `You are a strict data extraction tool for KYC identity verification.
+You are given an image of a government-issued ID document (e.g., Aadhaar card, passport, driver's license).
 
-You are given two images:
-IMAGE 1: A government-issued ID document (e.g., Aadhaar card, passport, driver's license).
-IMAGE 2: A live selfie of a person taken via webcam.
-
-TASK 1 - DATA EXTRACTION:
-Extract from the ID document:
+TASK - DATA EXTRACTION:
+Extract the following exact details from the document:
 - Full Name
 - Date of Birth (DOB)  
 - ID Number (Aadhaar number, passport number, etc.)
-If partially obscured, extract what you can.
 
-TASK 2 - FORENSIC FACIAL COMPARISON:
-START with the assumption that these are TWO DIFFERENT PEOPLE. Only change your conclusion if the evidence strongly proves otherwise.
-
-Analyze each of these 8 facial features and note whether they MATCH or MISMATCH:
-1. Eye shape and inter-ocular distance (ratio of eye spacing to face width)
-2. Nose structure (bridge width, length, tip shape, nostril shape)
-3. Jawline and chin (angular vs round vs pointed, chin cleft, jaw width)
-4. Mouth and lip proportions (lip thickness, mouth width relative to nose)
-5. Face shape and proportions (oval/round/square/heart, length-to-width ratio)
-6. Eyebrow shape (arch height, thickness, spacing)
-7. Cheekbone prominence and position
-8. Forehead shape and hairline pattern
-
-IMPORTANT ALLOWANCES (do NOT count these as mismatches):
-- Different lighting, camera quality, image resolution, or webcam distortion
-- Aging up to 10 years, weight gain/loss
-- Glasses on/off, facial hair changes, different hairstyle
-- Different facial expressions (smiling vs neutral)
-- Skin tone differences caused by cameras
-
-STRICT DECISION CRITERIA:
-- If 6+ features clearly MATCH → Same person → "Approved" (score 85-100)
-- If 4-5 features match → Uncertain → "Flagged" (score 60-84)
-- If 3 or fewer features match → Different person → "Rejected" (score 0-59)
-- When in doubt, choose "Flagged" or "Rejected", NEVER "Approved"
-
-ANTI-FRAUD WARNING: Two people of the same gender, ethnicity, and age group can look superficially similar. Do NOT approve based on general resemblance alone. You must verify SPECIFIC structural features match.
+If partially obscured, extract what you can. Do NOT hallucinate data not visible in the document.
 
 Return ONLY a raw JSON object. No markdown, no backticks, no extra text:
 {
@@ -122,14 +90,10 @@ Return ONLY a raw JSON object. No markdown, no backticks, no extra text:
     "name": "extracted name",
     "dob": "extracted dob",
     "idNumber": "extracted ID number"
-  },
-  "reasoning": "Brief comparison: Eye spacing - MATCH/MISMATCH, Nose - MATCH/MISMATCH, Jaw - MATCH/MISMATCH, etc.",
-  "featuresMatched": 5,
-  "matchScore": 45,
-  "status": "Rejected"
+  }
 }`;
         
-        console.log("Sending images to Gemini AI for verification...");
+        console.log("Sending document to Gemini AI for OCR...");
         
         // Retry logic for rate limits
         let resultText = null;
@@ -142,8 +106,7 @@ Return ONLY a raw JSON object. No markdown, no backticks, no extra text:
                     model: 'gemini-2.5-flash',
                     contents: [
                         prompt,
-                        { inlineData: { data: docBase64, mimeType: 'image/jpeg' } },
-                        { inlineData: { data: selfieBase64, mimeType: 'image/jpeg' } }
+                        { inlineData: { data: docBase64, mimeType: 'image/jpeg' } }
                     ]
                 });
                 resultText = response.text.trim();
@@ -166,15 +129,19 @@ Return ONLY a raw JSON object. No markdown, no backticks, no extra text:
         
         const parsedData = JSON.parse(resultText);
         
-        // Build the result record
+        // Build the result record using Gemini for OCR and frontend ML for biometric matching
+        let finalStatus = 'Flagged';
+        if (mlMatchScore >= 85) finalStatus = 'Approved';
+        else if (mlMatchScore < 60) finalStatus = 'Rejected';
+
         const record = {
             documentUrl,
             selfieUrl,
             extractedData: parsedData.extractedData,
-            reasoning: parsedData.reasoning || '',
-            featuresMatched: parsedData.featuresMatched,
-            matchScore: parsedData.matchScore,
-            status: parsedData.status,
+            reasoning: `Automated ML Biometric Check: Euclidean Distance ${mlDistance.toFixed(4)}`,
+            featuresMatched: 8, // face-api uses 128 point descriptor, we can just hardcode or omit
+            matchScore: mlMatchScore,
+            status: finalStatus,
             createdAt: new Date()
         };
         
